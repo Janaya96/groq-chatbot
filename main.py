@@ -18,20 +18,29 @@ def chat_with_groq():
         print(f"Groq: {response}")
 
 def get_groq_response(prompt):
+    if not GROQ_API_KEY:
+        return "Error: GROQ_API_KEY is missing. Please set it in your environment."
+
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
     data = {
-        "model": "gpt-4",  # Change to appropriate Groq model if needed
+        "model": "mixtral-8x7b-32768",  # Change to appropriate Groq model if needed
         "messages": [{"role": "user", "content": prompt}]
     }
 
-    response = requests.post(GROQ_API_URL, json=data, headers=headers)
-    if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"]
-    else:
-        return "Error: Unable to get a response from Groq."
+    try:
+        response = requests.post(GROQ_API_URL, json=data, headers=headers)
+        print(f"🔍 DEBUG: Status Code: {response.status_code}")
+        print(f"🔍 DEBUG: Response Text: {response.text}")
+        
+        if response.status_code == 200:
+            return response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response content.")
+        else:
+            return f"Error: {response.status_code} - {response.text}"
+    except requests.exceptions.RequestException as e:
+        return f"Error: Request failed - {e}"
 
 if __name__ == "__main__":
     chat_with_groq()
