@@ -3,7 +3,7 @@ import requests
 
 # Set your Groq API key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")  # Load from environment variable for security
-GROQ_API_URL = "https://api.groq.com/v1/chat/completions"
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 def chat_with_groq():
     print("Welcome to the Groq Chatbot! Type 'quit' to exit.")
