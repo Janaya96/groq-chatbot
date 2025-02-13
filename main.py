@@ -1,46 +1,40 @@
 import os
-import requests
+from pydantic import BaseModel, Field
+from typing import List
+from groq import Groq
+import instructor
 
-# Set your Groq API key
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")  # Load from environment variable for security
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+class Subject(BaseModel):
+    title: str
+    details: List[str] = Field(..., description="A list of details about the topic")
 
-def chat_with_groq():
-    print("Welcome to the Groq Chatbot! Type 'quit' to exit.")
+def get_topic_input():
+    return input("Enter a topic to explore (or 'quit' to stop): ")
 
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() == "quit":
-            print("Exiting... Goodbye!")
-            break
+def execute_query(topic):
+    client_instance = Groq(
+        api_key=os.environ.get(
+            os.environ.get("GROQ_API_KEY"),
+        ),
+    )
 
-        response = get_groq_response(user_input)
-        print(f"Groq: {response}")
+    client_instance = instructor.from_groq(client_instance, mode=instructor.Mode.TOOLS)
 
-def get_groq_response(prompt):
-    if not GROQ_API_KEY:
-        return "Error: GROQ_API_KEY is missing. Please set it in your environment."
-
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "mixtral-8x7b-32768",  # Change to appropriate Groq model if needed
-        "messages": [{"role": "user", "content": prompt}]
-    }
-
-    try:
-        response = requests.post(GROQ_API_URL, json=data, headers=headers)
-        print(f"🔍 DEBUG: Status Code: {response.status_code}")
-        print(f"🔍 DEBUG: Response Text: {response.text}")
-        
-        if response.status_code == 200:
-            return response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response content.")
-        else:
-            return f"Error: {response.status_code} - {response.text}"
-    except requests.exceptions.RequestException as e:
-        return f"Error: Request failed - {e}"
+    response = client_instance.chat.completions.create(
+        model="mixtral-8x7b-32768",
+        messages=[
+            {
+                "role": "user",
+                "content": f"Provide information about {topic}",
+            }
+        ],
+        response_model=Subject,
+    )
+    print(response.model_dump_json(indent=2))
 
 if __name__ == "__main__":
-    chat_with_groq()
+    while True:
+        topic_input = get_topic_input()
+        if topic_input.lower() == 'quit':
+            break
+        execute_query(topic_input)
